@@ -1,0 +1,7 @@
+.*.swo
+.*.swp
+*.class
+*.txt
+part-*
+_SU*
+*.jar
