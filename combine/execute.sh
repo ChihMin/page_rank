@@ -8,7 +8,10 @@ fi
 input=$1
 output=$2
 hdfs dfs -rm -r -f $output
-hdfs dfs -rm $input/part-*
 hadoop jar CalculateAverage.jar calculateAverage.CalculateAverage $input $output
+retVal=$?
+echo "[CURRENT STATE] Exit value = $retVal"
 hdfs dfs -rm $output/_SUCCESS
+
+exit $retVal
 #hdfs dfs -mv $output/part-* $input/

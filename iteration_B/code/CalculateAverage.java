@@ -55,9 +55,9 @@ public class CalculateAverage {
 		
 		// set the output class of Mapper and Reducer
 		job.setMapOutputKeyClass(Text.class);
-		job.setMapOutputValueClass(DoubleWritable.class);
+		job.setMapOutputValueClass(Text.class);
 		job.setOutputKeyClass(Text.class);
-		job.setOutputValueClass(DoubleWritable.class);
+		job.setOutputValueClass(Text.class);
 		
 		// set the number of reducer
 		// job.setNumReduceTasks(2);

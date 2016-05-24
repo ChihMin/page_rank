@@ -29,7 +29,8 @@ public class CalculateAverageMapper extends Mapper<LongWritable, Text, Text, Tex
 
         Text pageKey = new Text();
         Text pageValue = new Text();
-        if (pageTitle.compareTo("!chihmin_nodes") != 0) {
+        if (pageTitle.compareTo("!chihmin_nodes") != 0 &&
+            pageTitle.compareTo("!!!!chihmin_error") != 0) {
             String numOfEdgeStr = patterns[1];
             String nodeStr = pageStr.substring(
                 pageTitle.length() + 1
@@ -39,7 +40,7 @@ public class CalculateAverageMapper extends Mapper<LongWritable, Text, Text, Tex
             
             int numOfEdge = Integer.valueOf(numOfEdgeStr);
             if (numOfEdge == 0) {
-                Double alpha = 0.85;
+                Double alpha = new Double(0.85);
                 Double totalPages = Double.valueOf(numOfNodes);
                 Double pageRank = alpha * Double.valueOf(patterns[patterns.length-1]) / totalPages;
                 

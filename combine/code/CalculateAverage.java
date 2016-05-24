@@ -18,7 +18,6 @@ public class CalculateAverage {
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(conf);
-        FileStatus[] files = fs.listStatus(new Path(args[0]));
         BufferedReader br = new BufferedReader(
             new InputStreamReader(
                 fs.open(new Path(args[0] + "/part-r-00000"))
@@ -26,25 +25,19 @@ public class CalculateAverage {
         ); 
         
         String line;
-        int number = 0; 
+        Double error = null;
         while ((line = br.readLine()) != null) {
             String[] patterns = line.split("\t");
-            String title = patterns[0];
-            String replaceStr = title + "\t";
-            String nextNodes = line.substring(title.length() + 1);
+            String key = patterns[0];
             
-            if (title.compareTo("!chihmin_nodes") == 0) {
-                System.out.println(line);
-                String[] keyValuePair = line.split("\t");
-                conf.set("N", keyValuePair[1]);
-                break;
+            if (key.compareTo("!!!!chihmin_error") == 0) {
+                error = Double.valueOf(patterns[1]);
+                System.out.println(String.valueOf(error));
             }
-
-            number = number + 1;
-            if (number % 1000000 == 1)
-                System.out.println(String.valueOf(number));  
         }
- 
+
+
+        br.close();
         		
 		Job job = Job.getInstance(conf, "CalculateAverage");
 		job.setJarByClass(CalculateAverage.class);
@@ -54,7 +47,7 @@ public class CalculateAverage {
 		//job.setCombinerClass(CalculateAverageCombiner.class);
 		//job.setPartitionerClass(CalculateAveragePartitioner.class);
 		//job.setPartitionerClass(CalculateAveragePartitioner.class);
-		//job.setSortComparatorClass(xxx.class);
+		job.setSortComparatorClass(CalculateAverageComparator.class);
 		job.setReducerClass(CalculateAverageReducer.class);
 		
 		// set the output class of Mapper and Reducer
@@ -70,6 +63,8 @@ public class CalculateAverage {
 		FileInputFormat.addInputPath(job, new Path(args[0]));
 		FileOutputFormat.setOutputPath(job, new Path(args[1]));
 		
-		System.exit(job.waitForCompletion(true) ? 0 : 1);
+        if (error.compareTo(0.001) < 0)
+            job.waitForCompletion(true);
+        System.exit(error.compareTo(0.001));
 	}
 }

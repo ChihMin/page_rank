@@ -17,29 +17,6 @@ public class CalculateAverage {
 
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
-        BufferedReader br = new BufferedReader(
-            new InputStreamReader(
-                fs.open(new Path(args[0] + "/directed_map.txt"))
-            )
-        ); 
-        
-        String line;
-        int attributeCheck = 0;
-        while ((line = br.readLine()) != null) {
-            String[] patterns = line.split("\t");
-            String key = patterns[0];
-            
-            if (key.compareTo("!chihmin_zero") == 0 ||
-                key.compareTo("!chihmin_nodes") == 0) {
-                System.out.println(line);
-                conf.set(key, patterns[1]);
-                attributeCheck++;
-                
-                if (attributeCheck == 2)
-                    break;
-            }
-        }
         	
 		Job job = Job.getInstance(conf, "CalculateAverage");
 		job.setJarByClass(CalculateAverage.class);

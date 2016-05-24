@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.lang.Math;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.IntWritable;
@@ -28,32 +29,33 @@ public class CalculateAverageMapper extends Mapper<LongWritable, Text, Text, Tex
     private SumCountPair element ;
 
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-        FileSplit fileSplit = (FileSplit)context.getInputSplit();
-        String fileName = fileSplit.getPath().getName();
-        
         String pageStr = value.toString();
         String[] patterns = pageStr.split("\t");
         String pageTitle = patterns[0];
+        
+        String lastPageRankStr = patterns[patterns.length - 3];
+        String nowPageRankStr = patterns[patterns.length - 1];
 
-        Configuration conf = context.getConfiguration();
-        double N = Double.valueOf(conf.get("!chihmin_nodes"));
-        double zeroDegree = Double.valueOf(conf.get("!chihmin_zero"));
-        double alpha = 0.85;
+        Double lastPageRank = Double.valueOf(lastPageRankStr);
+        Double nowPageRank = Double.valueOf(nowPageRankStr);
+        Double error = new Double(Math.abs(nowPageRank - lastPageRank));
+        
+        String newStr = pageStr.substring(
+            pageTitle.length() + 1, 
+            pageStr.length() - lastPageRankStr.length() - nowPageRankStr.length() - 4 
+        ) + "\t" + nowPageRank;
+        // System.out.println("[MAPPER " + pageTitle + "]->" + newStr);
         
         Text pageKey = new Text(pageTitle);
-        if (fileName.compareTo("directed_map.txt") == 0) {
-            if (pageTitle.compareTo("!chihmin_nodes") == 0) { 
-                Text pageValue = new Text(conf.get("!chihmin_nodes"));
-                context.write(pageKey, pageValue);
-            } else if (pageTitle.compareTo("!chihmin_zero") != 0){
-                String masterString = pageStr.substring(pageTitle.length() + 1) + "\t0";
-                Text pageValue = new Text(masterString);
-                context.write(pageKey, pageValue);
-            }
-        } else {
-            String masterString = patterns[1] + "\t1";
-            Text pageValue = new Text(masterString);
-            context.write(pageKey, pageValue);
-        }
+        Text pageValue = new Text(newStr);
+        context.write(pageKey, pageValue);
+        
+        pageKey = new Text("!chihmin_nodes");
+        pageValue = new Text("1");
+        context.write(pageKey, pageValue);
+
+        pageKey = new Text("!!!!chihmin_error");
+        pageValue = new Text(String.valueOf(error));
+        context.write(pageKey, pageValue);
     }
 }

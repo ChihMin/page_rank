@@ -1,4 +1,4 @@
-output=HW2/iterator0
+output=HW2/iterator0C
 input=HW2/map_input
 
 hdfs dfs -rm -r -f $output
