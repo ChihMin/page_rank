@@ -17,6 +17,11 @@ public class CalculateAverageReducer extends Reducer<Text, Text, Text, Text> {
             String valueStr = value.toString();
             String[] patterns = valueStr.split("\t");
             String isMaster = patterns[patterns.length - 1];
+/*
+            if (key.toString().compareTo("Roman Catholic Church") == 0) {
+                System.out.println("[MAPPER " + key.toString() + "]->" + value.toString());
+            }
+*/
             if (isMaster.compareTo("0") == 0) {
                 master = valueStr; 
             } else {
@@ -28,8 +33,7 @@ public class CalculateAverageReducer extends Reducer<Text, Text, Text, Text> {
         if (master != null) {
             Text value = new Text();
             value.set(master + "\t" + String.valueOf(sum));
-            
-            System.out.println("[REDUCER " + key.toString() + "]->" + String.valueOf(number) + "->" + String.valueOf(sum));
+            // System.out.println("[MAPPER " + key.toString() + "]->" + value.toString());
             context.write(key, value); 
         }
     }

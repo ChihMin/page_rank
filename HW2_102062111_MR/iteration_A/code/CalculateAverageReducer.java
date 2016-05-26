@@ -13,11 +13,14 @@ public class CalculateAverageReducer extends Reducer<Text,Text,Text,Text> {
 	    String keyStr = key.toString();
         if (keyStr.compareTo("!chihmin_zero") == 0) {
             Double zeroDegree = new Double(0);
+            int number = 0;
             for (Text val: values) {
                 // System.out.println("[REDUCER] " + val.toString() + " " +  keyStr);
                 Double pageRank = Double.valueOf(val.toString());
                 zeroDegree = zeroDegree + pageRank;
+                number = number + 1;
             }
+            System.out.println("[REDUCER] " + String.valueOf(number));
             Text value = new Text();
             value.set(String.valueOf(zeroDegree));
             context.write(key, value);

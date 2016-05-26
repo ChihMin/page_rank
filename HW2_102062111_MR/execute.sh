@@ -1,12 +1,19 @@
 #!/bin/bash
 
+if [ $# -lt 1 ]; then 
+  echo "please input size : ./execute.sh \S{SIZE}"
+  exit 1
+fi
 
 i=1
 EXEC=./execute.sh
-pre=HW2
+pre=HW2_$1
 while [ $i -lt 22 ]; do
   j=$(($i-1))
-  
+  k=$(($j-1))
+
+  hdfs dfs -rm -r -f $pre/iterator${k}*
+   
   input=$pre/iterator${j}C
   output=$pre/iterator${i}
   cd iteration_A
