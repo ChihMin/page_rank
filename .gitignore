@@ -6,3 +6,5 @@ part-*
 _SU*
 *.jar
 *.log
+project/
+target/
