@@ -2,7 +2,9 @@
 import org.apache.spark._
 import org.apache.hadoop.fs._
 import java.util.regex._
-import java.util._
+// import java.util._
+import java.lang.Double
+import scala.collection.mutable.ListBuffer
 
 object WordCount {
     def main(args: Array[String]) {
@@ -10,8 +12,6 @@ object WordCount {
         val outputPath = "HW2_Spark_100M"
         val conf = new SparkConf().setAppName("PageRank")
         val sc = new SparkContext(conf)
-
-
         
         // Cleanup output dir
         val hadoopConf = sc.hadoopConfiguration
@@ -21,7 +21,7 @@ object WordCount {
         val lines = sc.textFile(files)
         val titleReg = "<title>(.+?)</title>"
         val titleSplitReg = "<title>|</title>"
-        val ret = lines.flatMap(line =>{
+        val originGraph = lines.flatMap(line =>{
           val m = Pattern.compile(titleReg).matcher(line)
           val mNode = Pattern.compile("\\[\\[(.+?)([\\|#]|\\]\\])").matcher(line)
           val isFind = m.find()
@@ -33,7 +33,7 @@ object WordCount {
                             .replaceAll("&lt;", "<")
                             .replaceAll("&amp;","&")
                             .replaceAll("&apos;", "'")
-            val allMatches = new ArrayList[String]() 
+            var allMatches: ListBuffer[String] = ListBuffer[String]() 
             while (mNode.find()) {
               val patterns = mNode.group().split("[\\[\\]\\|#]+")
               if (patterns.length > 1) {
@@ -42,15 +42,75 @@ object WordCount {
                                   .replaceAll("&lt;", "<")
                                   .replaceAll("&amp;","&")
                                   .replaceAll("&apos;", "'")
-                allMatches.add(nextNode)
+                allMatches += nextNode
               }
             }
-            (title, String.join("\t", allMatches))
+            val nextNodes = new Page(allMatches.toList)
+            (title, nextNodes)
           })
         })
-        //ret.collect().foreach(println)
-        ret.saveAsTextFile(outputPath)
+
+        val N = originGraph.count
+        var graph = originGraph.map(node => {
+          node._2.setPageRank(Double.valueOf(1) / Double.valueOf(N))
+          (node._1, node._2)
+        }).cache()
         
+        
+        // graph.saveAsTextFile(outputPath)
+        // pageRank.saveAsTextFile(outputPath)
+        
+        val alpha = new Double(0.85)
+        var error = new Double(1)
+        val one = new Double(1)
+        var numOfIteration = 0
+        //while (error.compareTo(0.001) >= 0) {
+          numOfIteration = numOfIteration + 1
+          val zeroDegree = graph.filter(node => {
+            node._2.getNumOfEdges() == 0
+          }).map(node => {
+            node._2.getPageRank()
+          }).reduce(_+_) * alpha / Double.valueOf(N) + (one - alpha) * (one / Double.valueOf(N))
+         
+          val sumOfConstant = sc.broadcast(zeroDegree) 
+          println("[ZERODEGREE] " + sumOfConstant.toString())
+
+          graph = graph.flatMap(node => {
+            val edges: List[String] = node._2.getEdges()
+            val numOfEdges  = Double.valueOf(node._2.getNumOfEdges())
+            val pageRank = node._2.getPageRank()
+            val nextPageRank = alpha * pageRank / numOfEdges
+            edges.map(nextNode => {
+              val nextNodePageRank = new Page(edges)
+              nextNodePageRank.setPageRank(nextPageRank)
+              (nextNode, nextNodePageRank)
+            })
+          })
+          //zeroDegree.saveAsTextFile(outputPath)
+        //} 
+        
+        sc.stop
+    }
+}
+
+class Page(lk: List[String]) {
+  val link: List[String] = lk
+  var pageRank: Double = 0.0
+
+  override def toString(): String = {
+    link.toString() + "\t" + String.valueOf(pageRank)
+  }
+
+  def setPageRank(pg: Double): Unit = {
+    pageRank = pg
+  }
+
+  def getPageRank(): Double = pageRank
+
+  def getNumOfEdges(): Int = link.length
+  
+  def getEdges(): List[String] = link
+}
         /*
         val counts = lines.flatMap (line => {
             val words = line.split("[^A-Za-z]+")
@@ -63,6 +123,3 @@ object WordCount {
         
         result.saveAsTextFile(outputPath);
         */
-        sc.stop
-    }
-}
