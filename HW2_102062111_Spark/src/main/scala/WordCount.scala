@@ -88,10 +88,12 @@ object WordCount {
             (node._1, sumNode)
           })
            
-          val newGraph = sumGraph.join(constValue).map(node => 
-            (node._1, node._2._1 + node._2._2)
-          ).filter(node => node._2.getEdges() != null)
-          ret.saveAsTextFile(outputPath)
+          val newGraph = sumGraph.union(constValue).reduceByKey(_+_).filter(node => node._2.getEdges() != null)
+          
+          println("[NUMBER sumGraph] " + String.valueOf(sumGraph.count));
+          println("[NUMBER constValue] " + String.valueOf(constValue.count));
+          println("[NUMBER newGraph] " + String.valueOf(newGraph.count));
+          newGraph.saveAsTextFile(outputPath)
           // pageRank.saveAsTextFile(outputPath)
          
           //zeroDegree.saveAsTextFile(outputPath)
