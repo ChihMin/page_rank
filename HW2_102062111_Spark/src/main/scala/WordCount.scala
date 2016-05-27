@@ -56,10 +56,6 @@ object WordCount {
           (node._1, node._2)
         }).cache()
         
-        
-        // graph.saveAsTextFile(outputPath)
-        // pageRank.saveAsTextFile(outputPath)
-        
         val alpha = new Double(0.85)
         var error = new Double(1)
         val one = new Double(1)
@@ -72,20 +68,32 @@ object WordCount {
             node._2.getPageRank()
           }).reduce(_+_) * alpha / Double.valueOf(N) + (one - alpha) * (one / Double.valueOf(N))
          
-          val sumOfConstant = sc.broadcast(zeroDegree) 
-          println("[ZERODEGREE] " + sumOfConstant.toString())
+          println("[ZERODEGREE] " + zeroDegree.toString())
 
-          graph = graph.flatMap(node => {
+          val sumGraph = graph.flatMap(node => {
             val edges: List[String] = node._2.getEdges()
             val numOfEdges  = Double.valueOf(node._2.getNumOfEdges())
             val pageRank = node._2.getPageRank()
             val nextPageRank = alpha * pageRank / numOfEdges
             edges.map(nextNode => {
-              val nextNodePageRank = new Page(edges)
+              val nextNodePageRank = new Page(null)
               nextNodePageRank.setPageRank(nextPageRank)
               (nextNode, nextNodePageRank)
             })
+          }).reduceByKey(_+_)
+          
+          val constValue = graph.map(node => {
+            val sumNode = new Page(node._2.getEdges())
+            sumNode.setPageRank(zeroDegree)
+            (node._1, sumNode)
           })
+           
+          val newGraph = sumGraph.join(constValue).map(node => 
+            (node._1, node._2._1 + node._2._2)
+          ).filter(node => node._2.getEdges() != null)
+          ret.saveAsTextFile(outputPath)
+          // pageRank.saveAsTextFile(outputPath)
+         
           //zeroDegree.saveAsTextFile(outputPath)
         //} 
         
@@ -93,23 +101,35 @@ object WordCount {
     }
 }
 
-class Page(lk: List[String]) {
+class Page(lk: List[String]) extends Serializable {
   val link: List[String] = lk
   var pageRank: Double = 0.0
 
   override def toString(): String = {
-    link.toString() + "\t" + String.valueOf(pageRank)
+    val linkStr = link match {
+      case null => "(NULL)"
+      case _ => link.toString()
+    }
+    linkStr + "\t" + String.valueOf(pageRank)
   }
-
   def setPageRank(pg: Double): Unit = {
     pageRank = pg
   }
-
   def getPageRank(): Double = pageRank
-
   def getNumOfEdges(): Int = link.length
-  
   def getEdges(): List[String] = link
+  def +(that: Page): Page = {
+    val sum = this.pageRank + that.pageRank
+    var edge: List[String] = null
+    if (this.getEdges() != null)  
+      edge = this.getEdges()
+    else if(that.getEdges() != null)
+      edge = that.getEdges()
+
+    val page = new Page(edge)
+    page.setPageRank(sum)
+    page
+  }
 }
         /*
         val counts = lines.flatMap (line => {
