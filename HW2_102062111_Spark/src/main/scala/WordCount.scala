@@ -4,12 +4,18 @@ import org.apache.hadoop.fs._
 import java.util.regex._
 // import java.util._
 import java.lang.Double
+import java.lang.Math
 import scala.collection.mutable.ListBuffer
 
 object WordCount {
     def main(args: Array[String]) {
-        val files = "/shared/HW2/sample-in/input-100M"
-        val outputPath = "HW2_Spark_100M"
+        if (args.length < 1) {
+          println("Please input size !")
+          System.exit(1)
+        }
+
+        val files = "/shared/HW2/sample-in/input-" + args(0)
+        val outputPath = "HW2_Spark_" + args(0)
         val conf = new SparkConf().setAppName("PageRank")
         val sc = new SparkContext(conf)
         
@@ -33,7 +39,7 @@ object WordCount {
                             .replaceAll("&lt;", "<")
                             .replaceAll("&amp;","&")
                             .replaceAll("&apos;", "'")
-            var allMatches: ListBuffer[String] = ListBuffer[String]() 
+            var allMatches: List[String] = List[String]() 
             while (mNode.find()) {
               val patterns = mNode.group().split("[\\[\\]\\|#]+")
               if (patterns.length > 1) {
@@ -42,10 +48,10 @@ object WordCount {
                                   .replaceAll("&lt;", "<")
                                   .replaceAll("&amp;","&")
                                   .replaceAll("&apos;", "'")
-                allMatches += nextNode
+                allMatches = nextNode.capitalize :: allMatches
               }
             }
-            val nextNodes = new Page(allMatches.toList)
+            val nextNodes = new Page(allMatches)
             (title, nextNodes)
           })
         })
@@ -54,13 +60,13 @@ object WordCount {
         var graph = originGraph.map(node => {
           node._2.setPageRank(Double.valueOf(1) / Double.valueOf(N))
           (node._1, node._2)
-        }).cache()
+        }).persist()
         
         val alpha = new Double(0.85)
         var error = new Double(1)
         val one = new Double(1)
         var numOfIteration = 0
-        //while (error.compareTo(0.001) >= 0) {
+        while (error.compareTo(0.001) >= 0) {
           numOfIteration = numOfIteration + 1
           val zeroDegree = graph.filter(node => {
             node._2.getNumOfEdges() == 0
@@ -88,17 +94,28 @@ object WordCount {
             (node._1, sumNode)
           })
            
-          val newGraph = sumGraph.union(constValue).reduceByKey(_+_).filter(node => node._2.getEdges() != null)
+          val newGraph = sumGraph.union(constValue)
+                                 .reduceByKey(_+_)
+                                 .filter(node => 
+                                 node._2.getEdges() != null)
           
-          println("[NUMBER sumGraph] " + String.valueOf(sumGraph.count));
-          println("[NUMBER constValue] " + String.valueOf(constValue.count));
-          println("[NUMBER newGraph] " + String.valueOf(newGraph.count));
-          newGraph.saveAsTextFile(outputPath)
-          // pageRank.saveAsTextFile(outputPath)
-         
-          //zeroDegree.saveAsTextFile(outputPath)
-        //} 
-        
+          error = graph.join(newGraph).map(node => {
+            node._2._1.getPageRankDiff(node._2._2.getPageRank())
+          }).reduce(_+_)
+          
+          graph.unpersist()
+          graph = newGraph
+          graph.persist()
+           
+          println("[ERROR DIFF] " + String.valueOf(error))
+        } 
+        val finalGraph = graph.sortBy {
+          node => (-node._2.getPageRank(), node._1)
+        }
+        val finalOutput = finalGraph.map(node => 
+          String.valueOf(node._1) + "\t" + node._2.toString()
+        )
+        finalOutput.saveAsTextFile(outputPath)
         sc.stop
     }
 }
@@ -112,7 +129,8 @@ class Page(lk: List[String]) extends Serializable {
       case null => "(NULL)"
       case _ => link.toString()
     }
-    linkStr + "\t" + String.valueOf(pageRank)
+    //linkStr + "\t" + String.valueOf(pageRank)
+    String.valueOf(pageRank)
   }
   def setPageRank(pg: Double): Unit = {
     pageRank = pg
@@ -132,16 +150,8 @@ class Page(lk: List[String]) extends Serializable {
     page.setPageRank(sum)
     page
   }
+
+  def getPageRankDiff(pg: Double): Double = {
+    new Double(Math.abs(this.pageRank  - pg)) 
+  }
 }
-        /*
-        val counts = lines.flatMap (line => {
-            val words = line.split("[^A-Za-z]+")
-            words.filter(_.length() != 0).map(word => (word.toLowerCase(), 1))
-        }).reduceByKey(_ + _)
-        
-        val result = counts.sortBy {
-          count => (-count._2, count._1)
-        };
-        
-        result.saveAsTextFile(outputPath);
-        */
