@@ -8,7 +8,7 @@ fi
 i=1
 EXEC=./execute.sh
 pre=HW2_$1
-while [ $i -lt 22 ]; do
+while true; do
   j=$(($i-1))
   k=$(($j-1))
 

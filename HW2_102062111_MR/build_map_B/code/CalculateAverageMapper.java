@@ -13,36 +13,27 @@ import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.conf.Configuration;
 
 public class CalculateAverageMapper extends Mapper<LongWritable, Text, Text, Text> {
 	
     private SumCountPair element ;
 
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+
         String pageStr = value.toString();
         String[] patterns = pageStr.split("\t");
-        String pageTitle = patterns[0];
-        Configuration conf = context.getConfiguration();
-        String numOfNodes = conf.get("N");
+        String title = patterns[0];
         
-        if (pageTitle.compareTo("!chihmin_nodes") != 0) {
-            Double pageRank = Double.valueOf(1)/Double.valueOf(numOfNodes);
-            String nodeStr = pageStr.substring(pageTitle.length()+1);
-            int numOfEdges = patterns.length - 1;
-
-            Text pageKey = new Text();
-            Text pageValue = new Text();
-            pageKey.set(pageTitle);
-            
-            pageValue.set(String.valueOf(numOfEdges) + "\t" + nodeStr + "\t" + String.valueOf(pageRank));
-            context.write(pageKey, pageValue); 
+        if (title.compareTo("!chihmin_nodes") != 0) {
+            for (int i = 1; i < patterns.length; ++i) {
+                Text pageKey = new Text(patterns[i]);
+                Text pageValue = new Text(title);
+                context.write(pageKey, pageValue);
+            }
+            if (patterns.length == 1)
+                context.write(new Text(title), new Text(""));
         } else {
-            Text pageKey = new Text();
-            Text pageValue = new Text();
-            pageKey.set(pageTitle);
-            pageValue.set(numOfNodes);
-            context.write(pageKey, pageValue);    
+            context.write(new Text(title), new Text(patterns[1]));
         }
     }
 }

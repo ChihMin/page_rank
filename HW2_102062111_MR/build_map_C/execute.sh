@@ -3,10 +3,10 @@ if [ $# -lt 1 ]; then
   exit 1
 fi
 
-output=HW2_$1/edge_filter
-input=/shared/HW2/sample-in/input-$1
+output=HW2_$1/iterator0C
+input=HW2_$1/map_input
 
-hdfs dfs -rm -r ${output}
+hdfs dfs -rm -r -f $output
 hadoop jar CalculateAverage.jar calculateAverage.CalculateAverage $input $output
 # rm OUTPUT/*
 # hdfs dfs -get $output/part-* OUTPUT/

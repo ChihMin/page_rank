@@ -28,14 +28,18 @@ public class CalculateAverageMapper extends Mapper<LongWritable, Text, Text, Tex
             String[] patterns = m.group().split("<title>|</title>");
             String title = replaceChar(patterns[1]);
             ArrayList<String> nextNodes = getNextNodeList(pageStr);
-
-            Text element = new Text();
-            element.set(String.join("\t", nextNodes));
             
-            Text word = new Text();
-            word.set(title);
-            context.write(word, element);
-            
+            Text pageKey = new Text(title);
+            Text pageValue = new Text("0");
+            context.write(pageKey, pageValue);
+            for (String nextNode: nextNodes) {
+                Text nextKey = new Text(
+                    nextNode.substring(0, 1).toUpperCase() +
+                    nextNode.substring(1)    
+                );
+                Text nextValue = new Text("1\t" + title);
+                context.write(nextKey, nextValue);
+            }
 
             /* Below is calculate outdegree 0 pages */
             Text degree = new Text();
